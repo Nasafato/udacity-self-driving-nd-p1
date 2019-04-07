@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+        <title>Project 1 Writeup</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/katex.min.css" integrity="sha384-9eLZqc9ds8eNjO3TmqPeYcDj8n+Qfa4nuSiGYa6DjLNcv9BtN69ZIulL9+8CqC9Y" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+        <link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <style>
+.task-list-item { list-style-type: none; } .task-list-item-checkbox { margin-left: -20px; vertical-align: middle; }
+</style>
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        
+        <script src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+    </head>
+    <body>
+        <h1 id="project-1-writeup">Project 1 Writeup</h1>
+<p>By Alan Gou</p>
+<h1 id="part-1--how-my-pipeline-works">Part 1 — How my pipeline works</h1>
+<p>My final pipeline consisted of the following steps for processing a given image:</p>
+<ol>
+<li>Convert image to grayscale</li>
+<li>Color select for colors within a particular threshold</li>
+<li>Run region of interest on the image</li>
+<li>Run Gaussian blur on the image</li>
+<li>Run Canny edge detection on the image</li>
+<li>Run the Hough transformation line detection and draw lines on the image</li>
+<li>Add overlay image to the original image to get the original image with red lines</li>
+</ol>
+<h2 id="creating-the-overlaid-image">Creating the overlaid image</h2>
+<p><strong>Step 1. Region of interest selection</strong></p>
+<p><img src="file:///Users/alangou/learning/udacity/car-nd-p1/writeup/Untitled-1a5bb857-a366-4ec9-a03e-f35afe2d5e2f.png" alt=""></p>
+<p><strong>Steps 2 and 3. Grayscaling &amp; color select</strong></p>
+<p><img src="file:///Users/alangou/learning/udacity/car-nd-p1/writeup/Untitled-7358be98-1633-4778-a376-ea55782c06a0.png" alt=""></p>
+<p><strong>Step 4. Gaussian blur</strong></p>
+<p><img src="file:///Users/alangou/learning/udacity/car-nd-p1/writeup/Untitled-48a2f93e-f131-4d43-b41e-de83dae0047c.png" alt=""></p>
+<p><strong>Step 5. Canny edge detection</strong></p>
+<p><img src="file:///Users/alangou/learning/udacity/car-nd-p1/writeup/Untitled-826f73dd-9060-4b66-885d-ddc05d0556a1.png" alt=""></p>
+<p><strong>Step 6. Hough lines &amp; draw lines</strong></p>
+<p><img src="file:///Users/alangou/learning/udacity/car-nd-p1/writeup/Untitled-4d4840f3-4203-4f03-8156-a9dbaa789c3e.png" alt=""></p>
+<p><strong>Step 7. Overlay lines onto original</strong></p>
+<p><img src="file:///Users/alangou/learning/udacity/car-nd-p1/writeup/Untitled-5b22efa8-91f2-4e17-aae6-e3666dfaa73a.png" alt=""></p>
+<h2 id="drawing-the-lines">Drawing the lines</h2>
+<p>Canny edge detection gives us a lot of lines, but we need to turn them into two discrete, solid lines. The steps are:</p>
+<ol>
+<li>Categorize lines into two groups — negatively-sloped and positively-sloped</li>
+<li>Turning all lines in each group into a single partial line</li>
+<li>Extend each line to the top and bottom of the region of interest, or some other arbitrary min/max height</li>
+</ol>
+<p>After that, you use <code>cv2.line()</code> to draw the lines on top of whatever mask image you're using.</p>
+<h3 id="step-1-categorizing-lines-into-groups">Step 1. Categorizing lines into groups</h3>
+<p>The equation for the slope is:</p>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>m</mi><mo>=</mo><mo>(</mo><msub><mi>y</mi><mn>2</mn></msub><mo>−</mo><msub><mi>y</mi><mn>1</mn></msub><mo>)</mo><mi mathvariant="normal">/</mi><mo>(</mo><msub><mi>x</mi><mn>2</mn></msub><mo>−</mo><msub><mi>x</mi><mn>1</mn></msub><mo>)</mo></mrow><annotation encoding="application/x-tex">m = (y_2-y_1)/(x_2-x_1)
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">m</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord"><span class="mord mathdefault" style="margin-right:0.03588em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.03588em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.03588em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.03588em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mord">/</span><span class="mopen">(</span><span class="mord"><span class="mord mathdefault">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathdefault">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span></span></p>
+<p>So it's simple to add lines to the negative-sloped group or the positive-sloped group.</p>
+<pre><code class="language-python"><div>positive_sloped_lines = []
+negative_sloped_lines = []
+<span class="hljs-keyword">for</span> line <span class="hljs-keyword">in</span> lines:
+    <span class="hljs-keyword">for</span> x1,y1,x2,y2 <span class="hljs-keyword">in</span> line:
+        slope = (y2 - y1)/(x2 - x1)
+        line = ((x1, y1), (x2, y2))
+        <span class="hljs-keyword">if</span> slope &lt;= <span class="hljs-number">0</span>:
+            negative_sloped_lines.append(line)
+        <span class="hljs-keyword">else</span>:
+            positive_sloped_lines.append(line)
+</div></code></pre>
+<h3 id="step-2-averaging-lines-in-each-group-into-a-single-line">Step 2. Averaging lines in each group into a single line</h3>
+<p>A line is two points. I guess I took the lazy way out and didn't actually take the average value of each line in each group, but instead took the leftmost point and rightmost point and created a line out of them.</p>
+<p>You find the leftmost point by getting the point in all the lines with the lowest <strong>x</strong> value.</p>
+<p>You find the rightmost point by finding the point with the highest <strong>x</strong> value.</p>
+<p>And you create the new line by just returning the leftmost point and the rightmost point.</p>
+<pre><code class="language-python"><div>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">average_lines</span><span class="hljs-params">(lines)</span>:</span>
+        leftmost_point = (<span class="hljs-number">100000</span>, <span class="hljs-number">0</span>)
+        rightmost_point = (<span class="hljs-number">0</span>, <span class="hljs-number">0</span>)
+        <span class="hljs-keyword">for</span> p1, p2 <span class="hljs-keyword">in</span> lines:
+            <span class="hljs-keyword">if</span> p1[<span class="hljs-number">0</span>] &lt; leftmost_point[<span class="hljs-number">0</span>]:
+                leftmost_point = p1
+            <span class="hljs-keyword">if</span> p2[<span class="hljs-number">0</span>] &lt; leftmost_point[<span class="hljs-number">0</span>]:
+                leftmost_point = p2
+            <span class="hljs-keyword">if</span> p1[<span class="hljs-number">0</span>] &gt; rightmost_point[<span class="hljs-number">0</span>]:
+                rightmost_point = p1
+            <span class="hljs-keyword">if</span> p2[<span class="hljs-number">0</span>] &gt; rightmost_point[<span class="hljs-number">0</span>]:
+                rightmost_point = p2
+        <span class="hljs-keyword">return</span> (leftmost_point, rightmost_point)
+</div></code></pre>
+<h3 id="step-3-extend-each-line-to-the-top-and-bottom-of-the-region-of-interest">Step 3. Extend each line to the top and bottom of the region of interest</h3>
+<p>A line in a coordinate plane is defined entirely by an equation of the form</p>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>y</mi><mo>=</mo><mi>m</mi><mi>x</mi><mo>+</mo><mi>b</mi></mrow><annotation encoding="application/x-tex">y = mx+b
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.19444em;"></span><span class="mord mathdefault" style="margin-right:0.03588em;">y</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.66666em;vertical-align:-0.08333em;"></span><span class="mord mathdefault">m</span><span class="mord mathdefault">x</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.69444em;vertical-align:0em;"></span><span class="mord mathdefault">b</span></span></span></span></span></p>
+<p>Given two points, you can find this equation with the following definitions:</p>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>m</mi><mo>=</mo><mo>(</mo><msub><mi>y</mi><mn>2</mn></msub><mo>−</mo><msub><mi>y</mi><mn>1</mn></msub><mo>)</mo><mi mathvariant="normal">/</mi><mo>(</mo><msub><mi>x</mi><mn>2</mn></msub><mo>−</mo><msub><mi>x</mi><mn>1</mn></msub><mo>)</mo></mrow><annotation encoding="application/x-tex">m = (y_2-y_1)/(x_2-x_1)
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">m</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord"><span class="mord mathdefault" style="margin-right:0.03588em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.03588em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.03588em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.03588em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mord">/</span><span class="mopen">(</span><span class="mord"><span class="mord mathdefault">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathdefault">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span></span></p>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>b</mi><mo>=</mo><msub><mi>y</mi><mn>1</mn></msub><mo>−</mo><mi>m</mi><msub><mi>x</mi><mn>1</mn></msub></mrow><annotation encoding="application/x-tex">b=y_1-mx_1
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.69444em;vertical-align:0em;"></span><span class="mord mathdefault">b</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.7777700000000001em;vertical-align:-0.19444em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.03588em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.03588em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.58056em;vertical-align:-0.15em;"></span><span class="mord mathdefault">m</span><span class="mord"><span class="mord mathdefault">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span></span></p>
+<p>With that equation, you can then find the bottom-most point of the extended line, as well as the top-most point of the extended line, by simply plugging in the bottom <strong>y-value</strong> and top <strong>y-value</strong> you want.</p>
+<pre><code class="language-python"><div>    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">extend_line</span><span class="hljs-params">(line, y_min, y_max)</span>:</span>
+        ((x1, y1), (x2, y2)) = line
+        m = (y2 - y1)/(x2 - x1)
+        b = y1 - m*x1
+        x_min = math.floor((y_min-b)/m)
+        x_max = math.floor((y_max-b)/m)
+        <span class="hljs-keyword">return</span> ((x_min, y_min), (x_max, y_max))
+</div></code></pre>
+<h1 id="part-2--shortcomings">Part 2 — Shortcomings</h1>
+<p>There are two shortcomings with this method so far:</p>
+<ol>
+<li>The drawn lines are very shaky — in the example video, the lines drawn are much smoother</li>
+<li>Errors get thrown for vertical or near-vertical lines when extending them, because we get a divide by zero error</li>
+</ol>
+<h1 id="part-3--improvements">Part 3 — Improvements</h1>
+<p>We can improve on the two shortcomings just mentioned.</p>
+<h3 id="part-1-improving-our-line-averaging-method">Part 1. Improving our line averaging method</h3>
+<p>The current method simply finds the leftmost point and rightmost point of all lines with a certain orientation, and returns that as the &quot;averaged&quot; line.</p>
+<p>This makes the drawn lines very shaky, since the value of the leftmost and rightmost points can shift dramatically, and sometimes you see flickers where the line goes haywire in the video and crosses horizontally or in some other weird direction.</p>
+<p><strong>Defining what an average of lines looks like</strong></p>
+<p>We must define what an &quot;average of lines&quot; looks like ourselves. So this is our definition, for a given set of lines:</p>
+<ol>
+<li>Sort the two points in each line so that the leftmost line — lowest <strong>x-value</strong> — comes first in each tuple</li>
+<li>Extend each line using our method for extending lines to the top/bottom</li>
+<li>Now, the first point in each line ought to have the same <strong>y-value</strong>, which is the bottom of the region of interest
+<ol>
+<li>Likewise with the second point in each line, whose <strong>y-values</strong> ought to be the top of the region of interest</li>
+</ol>
+</li>
+<li>Average the <strong>x-values</strong> of the first points in each line — this forms the leftmost point of the resulting averaged line</li>
+<li>Average the <strong>x-values</strong> of the second points in each line — this forms the rightmost point of the resulting averaged line</li>
+</ol>
+<p>With this, you get a line that is the &quot;average&quot;. Though, of course, this breaks down for lines that have slopes of 0, since we haven't handled extending lines with slopes of 0 yet. Though, once that works, this shouldn't be a problem.</p>
+<h3 id="part-2-handling-lines-with-slopes-of-0">Part 2. Handling lines with slopes of 0</h3>
+<p>If we encounter a line with a slope of zero, then the points in that line have the same <strong>y-value</strong>. We can just draw a line from the leftmost side of the image to the rightmost side. If we want, we could also make this conform to the region of interest, so we don't go beyond the region of interest.</p>
+
+    </body>
+    </html>
